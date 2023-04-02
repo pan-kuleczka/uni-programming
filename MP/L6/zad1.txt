@@ -1,0 +1,5 @@
+Indukcja po xs:
+
+i)  (map f (map g empty)) = (map f empty) = empty = (map (...) empty)
+ii) (map f (map g (cons x xs))) = (map f (cons (g x) (map g xs)))
+    = (cons (f (g (x))) (map f (map g xs))) = ...

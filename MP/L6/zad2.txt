@@ -1,0 +1,4 @@
+Indukcja po xs:
+
+i)  (append empty ys) = empty
+ii) (append (cons x xs) ys) = (cons x (append xs ys)) = (cons x vs), a vs to lista
