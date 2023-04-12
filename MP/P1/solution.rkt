@@ -172,18 +172,18 @@
 (define-struct eq2-f (name name2))
 (define-struct lt-f (name val))
 
-(define (table-select form tab)
+(define (table-select-rows form tab)
   (define rows (table-rows tab))
   (cond
     [(and-f? form) (isect-lists
-                    (table-select (and-f-l form) tab)
-                    (table-select (and-f-r form) tab)
+                    (table-select-rows (and-f-l form) tab)
+                    (table-select-rows (and-f-r form) tab)
                     )]
     [(or-f? form) (sum-lists
-                   (table-select (or-f-l form) tab)
-                   (table-select (or-f-r form) tab)
+                   (table-select-rows (or-f-l form) tab)
+                   (table-select-rows (or-f-r form) tab)
                    )]
-    [(not-f? form) (complement-list (table-select (not-f-e form) tab) rows)]
+    [(not-f? form) (complement-list (table-select-rows (not-f-e form) tab) rows)]
     [(eq-f? form) (filter
                    (lambda (row)
                      (equal? (select-value row (eq-f-name form) tab) (eq-f-val form))
@@ -208,6 +208,10 @@
     [else (error "Not a valid form.")]
     )
   )
+
+(define (table-select form tab)
+  (table (table-schema tab) (table-select-rows form tab))
+)
 
 (define (table-cross-join tab1 tab2)
   (table
@@ -273,7 +277,7 @@
     )
 
   (table
-   (isect-lists (table-schema tab1) (table-schema tab2))
+   (sum-lists (table-schema tab1) (table-schema tab2))
    (join-row-lists-rec (table-rows tab1-sorted) (table-rows tab2-sorted))
    )
   )
@@ -317,7 +321,7 @@
 '()
 '()
 '()
-(table-select (and-f (eq-f 'capital #t) (not-f (lt-f 'area 300))) cities)
+(table-select-rows (and-f (eq-f 'capital #t) (not-f (lt-f 'area 300))) cities)
 '()
 '()
 '()
