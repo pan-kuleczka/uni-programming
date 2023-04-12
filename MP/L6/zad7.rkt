@@ -18,6 +18,6 @@
     [(var? f) (s var-var f)]
     [(neg? f) (not (eval-formula s (neg-f f)))]
     [(conj? f) (and (eval-formula s (conj-l f)) (eval-formula s (conj-r f)))]
-    [(disj? f) (and (eval-formula s (disj-l f)) (eval-formula s (disj-r f)))]
+    [(disj? f) (or (eval-formula s (disj-l f)) (eval-formula s (disj-r f)))]
     )
   )
