@@ -23,7 +23,7 @@
      (numE (s-exp->number s))]
     [(s-exp-match? `{SYMBOL ANY ...} s)
      (opE (parse-op (s-exp->symbol (first (s-exp->list s))))
-         (map parse (s-exp->list s)))]
+         (map parse (rest (s-exp->list s))))]
     [else (error 'parse "invalid input")]))
 
 (define (parse-op [op : Symbol]) : Op
@@ -45,8 +45,6 @@
        (opE (add)
            (list (opE (mul) (list (numE 3) (numE 4))) (numE 8))))
   (test/exn (parse `{{+ 1 2}})
-           "invalid input")
-  (test/exn (parse `{+ 1})
            "invalid input")
   (test/exn (parse `{^ 1 2})
            "unknown operator"))

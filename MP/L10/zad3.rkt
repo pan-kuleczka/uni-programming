@@ -208,5 +208,5 @@
        (runAM `{+ {* 2 3} {+ 5 8}}))
   (test (run `{if #t 2 3})
        (runAM `{if #t 2 3}))
-  (test (run `{if (eql 2 3) 2 3})
-       (runAM `{if (eql 2 3) 2 3})))
+  (test (run `{if (= 2 3) 2 3})
+       (runAM `{if (= 2 3) 2 3})))
