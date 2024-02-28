@@ -1,5 +1,6 @@
 from enum import Enum
 import random
+import typing
 
 class CardColor(Enum):
     HEARTS = 1
@@ -39,7 +40,7 @@ class Card:
         self.color = color
         self.rank = rank
 
-def get_poker_hand(cards : list[Card]) -> PokerHand:
+def get_poker_hand(cards) -> PokerHand:
     if len(cards) != 5:
         raise ValueError("Invalid number of cards")
     cards.sort(key=lambda card: card.rank.value)
@@ -86,23 +87,25 @@ def get_poker_hand(cards : list[Card]) -> PokerHand:
 
 figurant_deck = [Card(color, rank) for color in CardColor for rank in [CardRank.JACK, CardRank.QUEEN, CardRank.KING, CardRank.ACE]]
 blotkarz_deck = [Card(color, rank) for color in CardColor for rank in [CardRank.TWO, CardRank.THREE, CardRank.FOUR, CardRank.FIVE, CardRank.SIX, CardRank.SEVEN, CardRank.EIGHT, CardRank.NINE, CardRank.TEN]]
+blotkarz_winning = [Card(color, rank) for color in CardColor for rank in [CardRank.EIGHT, CardRank.NINE, CardRank.TEN]]
 
-def get_random_five_cards(deck : list[Card]) -> list[Card]:
+def get_random_five_cards(deck):
     return random.sample(deck, 5)
 
 MONTE_CARLO_ITERATIONS = 100000
 
-def get_figurant_winning_probability() -> float:
+def get_figurant_winning_probability(deck1, deck2) -> float:
     wins = 0
     for _ in range(MONTE_CARLO_ITERATIONS):
-        figurant_hand = get_random_five_cards(figurant_deck)
-        blotkarz_hand = get_random_five_cards(blotkarz_deck)
-        if get_poker_hand(figurant_hand).value > get_poker_hand(blotkarz_hand).value:
+        figurant_hand = get_random_five_cards(deck1)
+        blotkarz_hand = get_random_five_cards(deck2)
+        if get_poker_hand(figurant_hand).value >= get_poker_hand(blotkarz_hand).value:
             wins += 1
     return wins / MONTE_CARLO_ITERATIONS
 
 def __main__() -> None:
-    print(get_figurant_winning_probability())
+    print(get_figurant_winning_probability(figurant_deck, blotkarz_deck))
+    print(get_figurant_winning_probability(figurant_deck, blotkarz_winning))
 
 if __name__ == "__main__":
     __main__()

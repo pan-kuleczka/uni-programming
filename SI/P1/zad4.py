@@ -1,4 +1,6 @@
-def opt_dist(arr : list[int], d : int) -> int:
+from typing import *
+
+def opt_dist(arr : List[int], d : int) -> int:
     pref_sums = [0] * (len(arr) + 1)
     pref_sums[0] = 0
     for i in range(len(arr)):

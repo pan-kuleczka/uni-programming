@@ -1,15 +1,16 @@
 import random
+from typing import *
 
 MAX_TRIES = 1000
-MAX_STEPS = 1000
-P = 0.95
+MAX_STEPS = 30000
+P = 0.05
 # The choices are selected with probabilities P, P(1 - P), P(1 - P)^2, ... from best to worst
 # The probability of choosing the worst option is (1 - P)^(n - 1)
 
 
 
 class Nonogram:
-    def __init__(self, rows : list[int], columns : list[int]) -> None:
+    def __init__(self, rows : List[int], columns : List[int]) -> None:
         self.rows = rows
         self.columns = columns
         self.board = [[0 for _ in range(len(columns))] for _ in range(len(rows))]
@@ -17,7 +18,7 @@ class Nonogram:
         for i in range(len(self.board)):
             for j in range(len(self.board[i])):
                 self.board[i][j] = random.choice([0, 1])
-    def opt_dist(self, arr : list[int], d : int) -> int:
+    def opt_dist(self, arr : List[int], d : int) -> int:
         pref_sums = [0] * (len(arr) + 1)
         pref_sums[0] = 0
         for i in range(len(arr)):
@@ -55,7 +56,15 @@ class Nonogram:
         for _ in range(max_steps):
             if self.is_solved():
                 return True
-            possibilities = [(i, j, self.dist_change(i, j, not self.board[i][j])) for i in range(len(self.rows)) for j in range(len(self.columns))]
+            
+            possibilities = []
+            if random.choice([True, False]):
+                col = random.randrange(0, len(self.columns))
+                possibilities = [(i, col, self.dist_change(i, col, not self.board[i][col])) for i in range(len(self.rows))]
+            else:
+                row = random.randrange(0, len(self.rows))
+                possibilities = [(row, j, self.dist_change(row, j, not self.board[row][j])) for j in range(len(self.columns))]
+            random.shuffle(possibilities)
             possibilities.sort(key = lambda x : -x[2])
             for i in range(len(possibilities)):
                 if random.random() < P or i == len(possibilities) - 1:
@@ -68,6 +77,7 @@ class Nonogram:
             self.randomize_board()
             if self.solve_board():
                 return True
+            print("Try " + str(_ + 1) + " of " + str(max_tries) + " failed.")
     def __str__(self) -> str:
         return "\n".join(["".join([("#" if self.board[i][j] else " ") for j in range(len(self.board[i]))]) for i in range(len(self.board))])
         
