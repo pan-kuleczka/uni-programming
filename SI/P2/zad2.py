@@ -4,6 +4,9 @@ from typing import *
 import random
 import queue
 
+# Zad 2: python3 validator2.py zad2 pypy3 zad2.py; 7/14
+# Zad 3: python3 validator2.py zad3 pypy3 zad2.py; 17/21
+
 DEBUG = False
 
 MAX_ATTEMPTS = int(1e6)
@@ -156,7 +159,20 @@ class Board:
         return None
 
     def a_star_heuristic(self, pos : Position) -> int:
-        return min([abs(pos.x - target.x) + abs(pos.y - target.y) for target in self.targets])
+        # BFS from pos to all targets
+        visited = set()
+        visited.add(pos)
+        queue = [(pos, 0)]
+        while queue:
+            state, distance = queue.pop(0)
+            if self.is_target(state):
+                return distance
+            for direction in Direction:
+                new_state = self.move(state, direction)
+                if new_state not in visited:
+                    visited.add(new_state)
+                    queue.append((new_state, distance + 1))
+        return int(1e9)
 
     def preprocess_a_star(self) -> None:
         dictionary = {}
@@ -189,7 +205,6 @@ class Board:
         return None
 
     def solve(self, task : int = 2) -> Optional[List[Direction]]:
-        self.preprocess_a_star()
         if DEBUG:
             print("Starts:")
             for start in self.starts:
@@ -211,6 +226,7 @@ class Board:
                 if bfs_solution is not None:
                     return moves + bfs_solution
         elif task == 2:
+            self.preprocess_a_star()
             state = self.get_initial_state()
             return self.a_star(state)
         return None

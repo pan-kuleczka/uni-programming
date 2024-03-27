@@ -101,7 +101,7 @@ class Nonogram:
             self.randomize_board()
             if self.solve_board():
                 return True
-            # print("Try " + str(_ + 1) + " of " + str(max_tries) + " failed.")
+            print("Try " + str(_ + 1) + " of " + str(max_tries) + " failed.")
     def __str__(self) -> str:
         return "\n".join(["".join([("#" if self.board[i][j] else ".") for j in range(len(self.board[i]))]) for i in range(len(self.board))])
         
