@@ -419,8 +419,185 @@ public:
 class GameAgent
 {
 public:
-    virtual BoardPosition makeMove(PlayerColor myColor, const GameState &state) = 0;
+    virtual Move makeMove(PlayerColor myColor, const GameState &state) = 0;
     virtual ~GameAgent() {}
+};
+
+class AgentAlpha : public GameAgent 
+{
+    const int TOTAL_MOVES = 20000;
+    float rateState(const GameState &state, PlayerColor myColor, int assignedMoves)
+    {
+        int won = 0;
+        int lost = 0;
+        while(assignedMoves > 0)
+        {
+            GameState currentState = state;
+            PlayerColor currentColor = getOpponent(myColor);
+            while(currentState.getGameResult() == IN_PROGRESS && assignedMoves > 0)
+            {
+                std::vector<Move> legalMoves = currentState.getLegalMoves(currentColor);
+                if(legalMoves.size() == 0)
+                    break;
+                int moveIndex = std::rand() % legalMoves.size();
+                currentState.makeMove(legalMoves[moveIndex]);
+                currentColor = getOpponent(currentColor);
+                assignedMoves--;
+            }
+            assignedMoves--;
+            if(currentState.getGameResult() == myColor)
+                won++;
+            else if(currentState.getGameResult() == getOpponent(myColor))
+                lost++;
+        }
+        if(won + lost == 0)
+            return 0;
+        return (float)won / (won + lost);
+    }
+
+    Move makeMove(PlayerColor myColor, const GameState &state) override
+    {
+        std::vector<Move> legalMoves = state.getLegalMoves(myColor);
+        std::random_shuffle(legalMoves.begin(), legalMoves.end());
+        int movesPerState = TOTAL_MOVES / legalMoves.size();
+        float bestRate = -1;
+        Move bestMove;
+        for(int i = 0; i < legalMoves.size(); ++i)
+        {
+            Move move = legalMoves[i];
+            GameState newState = state;
+            newState.makeMove(move);
+            float rate = rateState(newState, myColor, movesPerState);
+            if(rate > bestRate || bestRate == -1)
+            {
+                bestRate = rate;
+                bestMove = move;
+            }
+        }
+        return bestMove;
+    }
+};
+
+struct MCTSNode 
+{
+    MCTSNode *parent;
+    std::map<Move, MCTSNode*> children;
+    int visits = 0;
+    float wins = 0;
+
+    ~MCTSNode()
+    {
+        for(auto &child : children)
+            delete child.second;
+    }
+};
+
+class MCTSAgent : public GameAgent 
+{
+    const int N_ROUNDS = 100;
+    Move makeMove(PlayerColor myColor, const GameState &state) override
+    {
+        MCTSNode root;
+        for(int round = 0; round < N_ROUNDS; ++round)
+        {
+            MCTSNode *node = &root;
+            GameState currentState = state;
+            while(node->children.size() > 0)
+            {
+                float bestUCB = -1;
+                Move bestMove;
+                for(auto &child : node->children)
+                {
+                    float ucb = child.second->wins / child.second->visits + std::sqrt(2 * std::log(node->visits) / child.second->visits);
+                    if(ucb > bestUCB || bestUCB == -1)
+                    {
+                        bestUCB = ucb;
+                        bestMove = child.first;
+                    }
+                }
+                node = node->children[bestMove];
+                currentState.makeMove(bestMove);
+            }
+            PlayerColor currentColor = getOpponent(myColor);
+            while(currentState.getGameResult() == IN_PROGRESS)
+            {
+                std::vector<Move> legalMoves = currentState.getLegalMoves(currentColor);
+                if(legalMoves.size() == 0)
+                    break;
+                int moveIndex = std::rand() % legalMoves.size();
+                currentState.makeMove(legalMoves[moveIndex]);
+                currentColor = getOpponent(currentColor);
+            }
+            float result = 0;
+            if(currentState.getGameResult() == myColor)
+                result = 1;
+            else if(currentState.getGameResult() == getOpponent(myColor))
+                result = 0;
+            else
+                result = 0.5;
+            while(node != nullptr)
+            {
+                node->visits++;
+                node->wins += result;
+                node = node->parent;
+            }
+        
+        }
+        float bestRate = -1;
+        Move bestMove;
+        for(auto &child : root.children)
+        {
+            float rate = child.second->wins / child.second->visits;
+            if(rate > bestRate || bestRate == -1)
+            {
+                bestRate = rate;
+                bestMove = child.first;
+            }
+        }
+        return bestMove;
+    }
+};
+
+class Jungle
+{
+    GameAgent *whiteAgent;
+    GameAgent *blackAgent;
+
+public:
+    Jungle(GameAgent *white, GameAgent *black) : whiteAgent(white), blackAgent(black) {}
+
+    GameResult play(bool print = true)
+    {
+        GameState state = GameState();
+        PlayerColor toPlay = PlayerColor::WHITE;
+        while (state.getGameResult() == IN_PROGRESS)
+        {
+            if (print)
+                std::cout << state.toString() << std::endl;
+            GameAgent *agent = toPlay == PlayerColor::WHITE ? whiteAgent : blackAgent;
+            Move move = agent->makeMove(toPlay, state);
+            if(print) 
+                std::cout << "Move: " << (int)move.from.x << " " << (int)move.from.y << " -> " << (int)move.to.x << " " << (int)move.to.y << std::endl;
+            state.makeMove(move);
+            toPlay = getOpponent(toPlay);
+        }
+
+        GameResult result = state.getGameResult();
+
+        if (print)
+        {
+            std::cout << state.toString() << std::endl;
+            std::cout << "Winner: " << (result == WHITE_WINS ? "WHITE" : "BLACK") << std::endl;
+        }
+
+        return result;
+    }
+
+    ~Jungle()
+    {
+        delete whiteAgent;
+        delete blackAgent;
+    }
 };
 
 // void duellerMode()
@@ -477,13 +654,17 @@ public:
 
 int main(int argc, char **argv)
 {
-
+    std::srand(std::time(0));
     if (argc > 1 && std::string(argv[1]) == "test")
         return 0;
     else if (argc > 1 && std::string(argv[1]) == "human")
         return 0;
-    else
-        std::cout << INITIAL_PIECE_POSITIONS.toString() << std::endl;
+    
+
+    GameAgent *whiteAgent = new AgentAlpha();
+    GameAgent *blackAgent = new MCTSAgent();
+    Jungle game = Jungle(whiteAgent, blackAgent);
+    game.play();
 
     return 0;
 }
